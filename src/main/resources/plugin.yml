@@ -1,0 +1,6 @@
+name: Region
+version: '${project.version}'
+main: win.oreo.region.Main
+authors: [ superoreo ]
+description: Region Plugin
+website: https://github.com/superoreoooooo
