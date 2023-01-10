@@ -1,0 +1,5 @@
+prefix: "&f[&bRegion&f]"
+
+messages:
+  plugin-enable: "Region Plugin Enabled!"
+  plugin-disable: "Region Plugin Disabled!"

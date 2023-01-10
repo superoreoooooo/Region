@@ -4,3 +4,8 @@ main: win.oreo.region.Main
 authors: [ superoreo ]
 description: Region Plugin
 website: https://github.com/superoreoooooo
+commands:
+  region:
+    aliases:
+      - 지역
+      - reg
