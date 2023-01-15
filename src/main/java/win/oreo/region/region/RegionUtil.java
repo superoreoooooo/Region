@@ -5,6 +5,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import win.oreo.region.Main;
+import win.oreo.region.region.permission.RegionPermission;
 import win.oreo.region.util.Area;
 
 import java.util.*;
@@ -26,8 +27,14 @@ public class RegionUtil {
             int z1 = plugin.ymlManager.getConfig().getInt("region." + regionID + ".z1");
             int z2 = plugin.ymlManager.getConfig().getInt("region." + regionID + ".z2");
             String owner = plugin.ymlManager.getConfig().getString("region." + regionID + ".owner");
+            boolean access = plugin.ymlManager.getConfig().getBoolean("region." + regionID + ".permission.access");
+            boolean explode = plugin.ymlManager.getConfig().getBoolean("region." + regionID + ".permission.explode");
+            boolean pvp = plugin.ymlManager.getConfig().getBoolean("region." + regionID + ".permission.pvp");
+            List<String> authPlayer = plugin.ymlManager.getConfig().getStringList("region." + regionID + ".permission.accessPlayers");
 
-            Region region = new Region(id, x1, x2, z1, z2, owner);
+            RegionPermission regionPermission = new RegionPermission(access, explode, pvp, authPlayer);
+
+            Region region = new Region(id, x1, x2, z1, z2, owner, regionPermission);
 
             OfflinePlayer player = Bukkit.getOfflinePlayer(owner);
 
@@ -50,6 +57,10 @@ public class RegionUtil {
             plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".z1", region.getZ1());
             plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".z2", region.getZ2());
             plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".owner", region.getOwner());
+            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.access", region.getRegionPermission().isAccess());
+            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.explode", region.getRegionPermission().isExplode());
+            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.pvp", region.getRegionPermission().isPvp());
+            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.accessPlayers", region.getRegionPermission().getAccessPlayers());
         }
         for (OfflinePlayer offlinePlayer : playerCountMap.keySet()) {
             plugin.ymlManager.getConfig().set("player." + offlinePlayer.getName() + ".count", playerCountMap.get(offlinePlayer));
@@ -93,12 +104,13 @@ public class RegionUtil {
      * @param z1 1st position's BlockZ
      * @param z2 2nd position's BlockZ
      * @param owner owner of the region (String)
-     * @return
      */
     public static void createRegion(int x1, int x2, int z1, int z2, String owner) {
         UUID newID = UUID.randomUUID();
         int[] ints = setNormal(x1, x2, z1, z2);
-        Region region = new Region(newID, ints[0], ints[1], ints[2], ints[3], owner);
+        List<String> list = new ArrayList<>();
+        RegionPermission permission = new RegionPermission(false, false, false, list);
+        Region region = new Region(newID, ints[0], ints[1], ints[2], ints[3], owner, permission);
         regionSet.add(region);
         addRegionToPlayer(Bukkit.getOfflinePlayer(owner), region);
     }
@@ -110,7 +122,6 @@ public class RegionUtil {
      * @param z1 1st position's BlockZ
      * @param z2 2nd position's BlockZ
      * @param player owner of the region (Player)
-     * @return region
      */
     public static void createRegion(int x1, int x2, int z1, int z2, Player player) {
         createRegion(x1, x2, z1, z2, player.getName());
@@ -120,7 +131,6 @@ public class RegionUtil {
      *
      * @param area area
      * @param player owner of the region (Player)
-     * @return region
      */
     public static void createRegion(Area area, Player player) {
         createRegion(area.getX1(), area.getX2(), area.getZ1(), area.getZ2(), player.getName());
@@ -152,11 +162,29 @@ public class RegionUtil {
         return ints;
     }
 
+    public static void remove(Player player) {
+        Main plugin = JavaPlugin.getPlugin(Main.class);
+        Set<Region> set = playerRegionMap.get(player);
+        int i = 0;
+        playerRegionMap.remove(player);
+        set.forEach(region -> plugin.ymlManager.getConfig().set("region." + region.getId().toString(), null));
+        for (Region region : set) {
+            i = i + getSize(region);
+        }
+        set.forEach(region -> regionSet.remove(region));
+        plugin.ymlManager.saveConfig();
+        playerCountMap.put(player, playerCountMap.get(player) + i);
+    }
+
     /**
      * removes region
+     * <p>
+     * error- don't use
+     *
      * @param player player that owns the region
      * @param region region to remove
      */
+    @Deprecated
     public static void removeRegion(OfflinePlayer player, Region region) {
         playerRegionMap.get(player).remove(region);
         regionSet.remove(region);
@@ -164,8 +192,12 @@ public class RegionUtil {
 
     /**
      * removes region
+     * <p>
+     * error- don't use
+     *
      * @param region region to remove
      */
+    @Deprecated
     public static void removeRegion(Region region) {
         removeRegion(Bukkit.getOfflinePlayer(getOwner(region.getId())), region);
     }

@@ -6,6 +6,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import win.oreo.region.command.RegionCommand;
 import win.oreo.region.command.RegionCompleter;
+import win.oreo.region.listener.InvListener;
 import win.oreo.region.listener.RegionListener;
 import win.oreo.region.manager.YmlManager;
 import win.oreo.region.region.RegionUtil;
@@ -21,9 +22,11 @@ public final class Main extends JavaPlugin {
         Bukkit.getConsoleSender().sendMessage(getConfigMessage("messages.plugin-enable"));
         getCommand("region").setExecutor(new RegionCommand());
         getCommand("region").setTabCompleter(new RegionCompleter());
+        Bukkit.getPluginManager().registerEvents(new InvListener(), this);
         Bukkit.getPluginManager().registerEvents(new RegionListener(), this);
         ymlManager = new YmlManager(this);
         regionUtil.initialize();
+        RegionListener.initialize();
     }
 
     @Override

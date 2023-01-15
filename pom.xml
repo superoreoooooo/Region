@@ -57,6 +57,11 @@
 
     <repositories>
         <repository>
+            <id>local-repository</id>
+            <name>local repository</name>
+            <url>file://${project.basedir}/lib</url>
+        </repository>
+        <repository>
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
@@ -72,6 +77,11 @@
             <artifactId>paper-api</artifactId>
             <version>1.12.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>win.oreo</groupId>
+            <artifactId>Inventory</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>
