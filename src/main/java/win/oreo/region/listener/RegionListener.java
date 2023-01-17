@@ -10,7 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
@@ -113,7 +115,10 @@ public class RegionListener implements Listener {
         for (Region region : RegionUtil.regionSet) {
             if (playerMap.containsKey(player)) {
                 if (isPlayerIn(player, region)) {
-                    if (checkRegionPermission(player, region)) return;
+                    if (checkRegionPermission(player, region)) {
+                        teleport(player, region);
+                        return;
+                    }
                     if (!playerMap.get(player).equals(region)) {
                         player.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6&l" + region.getOwner() + "님의 지역"), "", 10, 70, 20);
                         playerMap.put(player, region);
@@ -121,33 +126,45 @@ public class RegionListener implements Listener {
                 }
             } else {
                 if (isPlayerIn(player, region)) {
-                    if (checkRegionPermission(player, region)) return;
+                    if (checkRegionPermission(player, region)) {
+                        teleport(player, region);
+                        return;
+                    }
                     playerMap.put(player, region);
                 }
             }
         }
     }
 
+    @EventHandler
+    public void onSet(BlockPlaceEvent e) {
+        Player player = e.getPlayer();
+        for (Region region : RegionUtil.regionSet) {
+            if (isBlockIn(e.getBlockPlaced(), region)) {
+                if (checkRegionPermission(player, region)) {
+                    e.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onBreak(BlockBreakEvent e) {
+        Player player = e.getPlayer();
+        for (Region region : RegionUtil.regionSet) {
+            if (isBlockIn(e.getBlock(), region)) {
+                if (checkRegionPermission(player, region)) {
+                    e.setCancelled(true);
+                }
+            }
+        }
+    }
+
     public boolean checkRegionPermission(Player player, Region region) {
-        if (!region.getRegionPermission().getAccessPlayers().contains(player)) {
+        if (!region.getRegionPermission().getAccessPlayers().contains(player.getName())) {
             if (!region.getOwner().equals(player.getName())) {
                 if (!player.hasPermission("administrators")) {
-                    player.sendMessage("출입 권한이 부족합니다.");
-                    if (region.getX1() >= player.getLocation().getBlockX()) {
-                        player.teleport(player.getLocation().add(-2, 0, 0));
-                    }
-                    if (region.getX2() <= player.getLocation().getBlockX()) {
-                        player.teleport(player.getLocation().add(2, 0, 0));
-                    }
-                    if (region.getZ1() >= player.getLocation().getBlockZ()) {
-                        player.teleport(player.getLocation().add(0, 0, -2));
-                    }
-                    if (region.getZ2() <= player.getLocation().getBlockZ()) {
-                        player.teleport(player.getLocation().add(0, 0, 2));
-                    }
-                    else if (isPlayerIn(player, region)) {
-                        player.teleport(player.getLocation().set(0, 60, 0));
-                    }
+                    player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
                     return true;
                 }
             }
@@ -155,17 +172,43 @@ public class RegionListener implements Listener {
         return false;
     }
 
+    public void teleport(Player player, Region region) {
+        if (region.getX1() >= player.getLocation().getBlockX()) {
+            player.teleport(player.getLocation().add(-2, 0, 0));
+        }
+        if (region.getX2() <= player.getLocation().getBlockX()) {
+            player.teleport(player.getLocation().add(2, 0, 0));
+        }
+        if (region.getZ1() >= player.getLocation().getBlockZ()) {
+            player.teleport(player.getLocation().add(0, 0, -2));
+        }
+        if (region.getZ2() <= player.getLocation().getBlockZ()) {
+            player.teleport(player.getLocation().add(0, 0, 2));
+        }
+        else if (isPlayerIn(player, region)) {
+            player.teleport(player.getLocation().set(0, 60, 0));
+        }
+    }
+
     @EventHandler
     public void onBlockExplode(BlockExplodeEvent e) {
-        if (isBlockIn(e.getBlock())) {
-            e.setCancelled(true);
+        for (Region region : RegionUtil.regionSet) {
+            if (isBlockIn(e.getBlock(), region)) {
+                if (!region.getRegionPermission().isExplode()) {
+                    e.setCancelled(true);
+                }
+            }
         }
     }
 
     @EventHandler
     public void onEntityExplode(EntityExplodeEvent e) {
-        if (isEntityIn(e.getEntity())) {
-            e.setCancelled(true);
+        for (Region region : RegionUtil.regionSet) {
+            if (isEntityIn(e.getEntity(), region)) {
+                if (!region.getRegionPermission().isExplode()) {
+                    e.setCancelled(true);
+                }
+            }
         }
     }
 
@@ -173,8 +216,12 @@ public class RegionListener implements Listener {
     public void onFight(EntityDamageByEntityEvent e) {
         if (e.getDamager() instanceof Player attacker) {
             if (e.getEntity() instanceof Player victim) {
-                if (isPlayerIn(attacker) || isPlayerIn(victim)) {
-                    e.setCancelled(true);
+                for (Region region : RegionUtil.regionSet) {
+                    if (isPlayerIn(attacker, region) || isPlayerIn(victim, region)) {
+                        if (!region.getRegionPermission().isPvp()) {
+                            e.setCancelled(true);
+                        }
+                    }
                 }
             }
         }
@@ -206,41 +253,14 @@ public class RegionListener implements Listener {
 
     @EventHandler
     public void onGen(EntitySpawnEvent e) {
-        if (isEntityIn(e.getEntity())) {
-            e.setCancelled(true);
+        if (!e.getEntity().getType().equals(EntityType.DROPPED_ITEM)) {
+            if (isEntityIn(e.getEntity())) {
+                e.setCancelled(true);
+            }
         }
     }
 
     public static void initialize() {
-        /*
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Main.class), () -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                for (Region region : RegionUtil.regionSet) {
-                    if (playerMap.containsKey(player)) {
-                        if (isPlayerIn(player, region)) {
-                            if (!playerMap.get(player).equals(region)) {
-                                player.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6&l" + region.getOwner() + "님의 지역"), "", 10, 70, 20);
-                                playerMap.put(player, region);
-                            }
-                        }
-                    } else {
-                        if (isPlayerIn(player, region)) {
-                            playerMap.put(player, region);
-                        }
-                    }
-                }
-            }
-        }, 0, 2); */
-    }
-
-    public static boolean isEntityIn(Entity entity) {
-        int[] pos = getPos(entity);
-        for (Region region : RegionUtil.regionSet) {
-            if (isEntityIn(entity, region)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static boolean isEntityIn(Entity entity, Region region) {
@@ -248,10 +268,9 @@ public class RegionListener implements Listener {
         return region.getX1() <= pos[0] && region.getX2() >= pos[0] && region.getZ1() <= pos[1] && region.getZ2() >= pos[1];
     }
 
-    public static boolean isBlockIn(Block block) {
-        int[] pos = getPos(block.getLocation());
+    public static boolean isEntityIn(Entity entity) {
         for (Region region : RegionUtil.regionSet) {
-            if (isBlockIn(block, region)) {
+            if (isEntityIn(entity, region)) {
                 return true;
             }
         }
@@ -263,10 +282,9 @@ public class RegionListener implements Listener {
         return region.getX1() <= pos[0] && region.getX2() >= pos[0] && region.getZ1() <= pos[1] && region.getZ2() >= pos[1];
     }
 
-    public static boolean isPlayerIn(Player player) {
-        int[] pos = getPos(player);
+    public static boolean isBlockIn(Block block) {
         for (Region region : RegionUtil.regionSet) {
-            if (isPlayerIn(player, region)) {
+            if (isBlockIn(block, region)) {
                 return true;
             }
         }
@@ -276,6 +294,15 @@ public class RegionListener implements Listener {
     public static boolean isPlayerIn(Player player, Region region) {
         int[] pos = getPos(player);
         return region.getX1() <= pos[0] && region.getX2() >= pos[0] && region.getZ1() <= pos[1] && region.getZ2() >= pos[1];
+    }
+
+    public static boolean isPlayerIn(Player player) {
+        for (Region region : RegionUtil.regionSet) {
+            if (isPlayerIn(player, region)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static int[] getPos(Player player) {

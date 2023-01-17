@@ -9,6 +9,8 @@ import win.oreo.inventory.Inventory.oreoItem;
 import win.oreo.inventory.util.oreoInventoryUtil;
 import win.oreo.region.region.Region;
 import win.oreo.region.region.RegionUtil;
+import win.oreo.region.region.permission.RegionPermission;
+import win.oreo.region.region.permission.RegionPermissionUtil;
 
 public class InvListener implements Listener {
     @EventHandler
@@ -32,30 +34,30 @@ public class InvListener implements Listener {
                                     case VOID -> {
                                         switch (e.getClickedInventory().getName()) {
                                             case "권한설정" -> {
+                                                boolean bool;
+                                                RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
+                                                if (regionPermission == null) return;
                                                 switch (item.getItemStack().getType()) {
                                                     case DIAMOND_PICKAXE -> {
-                                                        boolean bool = false;
+                                                        bool = !regionPermission.isAccess();
                                                         for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                                            bool = !region.getRegionPermission().isAccess();
-                                                            region.getRegionPermission().setAccess(!region.getRegionPermission().isAccess());
+                                                            region.getRegionPermission().setAccess(bool);
                                                         }
                                                         player.sendMessage("region permission:access set to " + bool);
                                                     }
                                                     case TNT -> {
-                                                        boolean bool = false;
+                                                        bool = !regionPermission.isExplode();
                                                         for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                                            bool = !region.getRegionPermission().isExplode();
-                                                            region.getRegionPermission().setExplode(!region.getRegionPermission().isExplode());
+                                                            region.getRegionPermission().setExplode(bool);
                                                         }
                                                         player.sendMessage("region permission:explode set to " + bool);
                                                     }
                                                     case DIAMOND_SWORD -> {
-                                                        boolean bool = false;
+                                                        bool = !regionPermission.isPvp();
                                                         for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                                            bool = !region.getRegionPermission().isExplode();
-                                                            region.getRegionPermission().setPvp(!region.getRegionPermission().isPvp());
+                                                            region.getRegionPermission().setPvp(bool);
                                                         }
-                                                        player.sendMessage("region permission:pvp set to "  + bool);
+                                                        player.sendMessage("region permission:access set to " + bool);
                                                     }
                                                 }
                                             }

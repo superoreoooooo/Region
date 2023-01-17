@@ -21,6 +21,8 @@ import win.oreo.inventory.util.oreoInv;
 import win.oreo.region.Main;
 import win.oreo.region.region.Region;
 import win.oreo.region.region.RegionUtil;
+import win.oreo.region.region.permission.RegionPermission;
+import win.oreo.region.region.permission.RegionPermissionUtil;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -78,12 +80,15 @@ public class RegionCommand implements CommandExecutor {
                     case "addpermission", "addperm", "권한추가" -> {
                         String[] strings = new String[1];
                         strings[0] = args[1];
-                        for (Region region : RegionUtil.getPlayerRegions(player)) {
-                            List<String> list = region.getRegionPermission().getAccessPlayers();
-                            list.add(args[1]);
-                            region.getRegionPermission().setAccessPlayers(list);
+                        if (Bukkit.getOfflinePlayer(args[1]).hasPlayedBefore()) {
+                            for (Region region : RegionUtil.getPlayerRegions(player)) {
+                                List<String> list = region.getRegionPermission().getAccessPlayers();
+                                list.add(args[1]);
+                                region.getRegionPermission().setAccessPlayers(list);
+                            }
+                            player.sendMessage(Main.getConfigMessage("messages.permission.add", strings));
                         }
-                        player.sendMessage(Main.getConfigMessage("messages.permission.add", strings));
+
                     }
                     case "removepermission", "removeperm", "권한해제" -> {
                         String[] strings = new String[1];
@@ -104,14 +109,12 @@ public class RegionCommand implements CommandExecutor {
                         }
                     }
                     case "permission", "perm", "권한확인" -> {
-                        for (Region region : RegionUtil.getPlayerRegions(player)) {
-                            List<String> list = region.getRegionPermission().getAccessPlayers();
-                            for (String playerString : list) {
-                                String[] strings = new String[1];
-                                strings[0] = playerString;
-                                player.sendMessage(Main.getConfigMessage("messages.permission.list", strings));
-                            }
-                            break;
+                        RegionPermission permission = RegionPermissionUtil.getRegionPermission(player);
+                        List<String> list = permission.getAccessPlayers();
+                        for (String playerString : list) {
+                            String[] strings = new String[1];
+                            strings[0] = playerString;
+                            player.sendMessage(Main.getConfigMessage("messages.permission.list", strings));
                         }
                     }
                     case "setpermission", "setperm", "권한설정" -> {
@@ -123,12 +126,12 @@ public class RegionCommand implements CommandExecutor {
                             boolean explode = false;
                             boolean pvp = false;
 
-                            for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                if (region.getRegionPermission().isAccess()) access = true;
-                                if (region.getRegionPermission().isExplode()) explode = true;
-                                if (region.getRegionPermission().isPvp()) pvp = true;
-                                break;
-                            }
+                            RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
+
+                            if (regionPermission == null) return false;
+                            if (regionPermission.isAccess()) access = true;
+                            if (regionPermission.isExplode()) explode = true;
+                            if (regionPermission.isPvp()) pvp = true;
 
                             HashMap<Integer, oreoItem> map = new HashMap<>();
 
@@ -165,11 +168,6 @@ public class RegionCommand implements CommandExecutor {
                         }
                     }
                     case "show", "확인" -> {
-                        if (!player.hasPermission("administrators")) {
-                            player.sendMessage(Main.getConfigMessage("messages.error.no-permission"));
-                            return false;
-                        }
-
                         player.sendMessage(Main.getConfigMessage("messages.show.region"));
 
                         List<Block> blocks = new ArrayList<>();
@@ -179,13 +177,16 @@ public class RegionCommand implements CommandExecutor {
                             int x2 = region.getX2();
                             int z1 = region.getZ1();
                             int z2 = region.getZ2();
-                            String[] strings1 = new String[2];
-                            String[] strings2 = new String[2];
+                            String[] strings1 = new String[3];
+                            String[] strings2 = new String[3];
 
                             strings1[0] = String.valueOf(x1);
                             strings1[1] = String.valueOf(z1);
+                            strings1[2] = region.getId().toString();
+
                             strings2[0] = String.valueOf(x2);
                             strings2[1] = String.valueOf(z2);
+                            strings2[2] = region.getId().toString();
 
                             player.sendMessage(Main.getConfigMessage("messages.show.pos1", strings1));
                             player.sendMessage(Main.getConfigMessage("messages.show.pos2", strings2));
