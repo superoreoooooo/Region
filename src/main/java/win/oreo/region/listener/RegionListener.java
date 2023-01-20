@@ -35,6 +35,7 @@ public class RegionListener implements Listener {
     public static HashMap<Player, Area> map = new HashMap<>();
     public static HashMap<Player, pos> pos1Map = new HashMap<>();
     public static HashMap<Player, pos> pos2Map = new HashMap<>();
+    private static HashMap<Player, Region> playerMap = new HashMap<>();
 
     List<Player> coolDown = new ArrayList<>();
 
@@ -73,7 +74,7 @@ public class RegionListener implements Listener {
                 pos1Map.remove(player);
                 pos2Map.remove(player);
                 buyArea(player);
-            } else if (!pos1Map.containsKey(player) && !pos2Map.containsKey(player)){
+            } else if (!pos1Map.containsKey(player) && !pos2Map.containsKey(player)) {
                 player.sendMessage("#1과 #2를 설정해 주세요.");
             } else if (!pos1Map.containsKey(player)) {
                 player.sendMessage("#1을 설정해 주세요.");
@@ -82,32 +83,6 @@ public class RegionListener implements Listener {
             }
         }
     }
-
-    public void buyArea(Player player) {
-        Area area = map.get(player);
-        player.sendMessage(String.valueOf(RegionUtil.getSize(area)));
-        if (!RegionUtil.checkOverlapping(area)) {
-            if (!RegionUtil.playerCountMap.containsKey(player)) RegionUtil.playerCountMap.put(player, 0);
-            if (RegionUtil.playerCountMap.get(player) >= RegionUtil.getSize(area)) {
-                RegionUtil.playerCountMap.put(player, RegionUtil.playerCountMap.get(player) - RegionUtil.getSize(area));
-                RegionUtil.createRegion(area, player);
-                player.sendMessage(Main.getConfigMessage("messages.edit.set"));
-            } else {
-                player.sendMessage(Main.getConfigMessage("messages.error.no-region"));
-            }
-        } else {
-            player.sendMessage(Main.getConfigMessage("messages.edit.overlap"));
-        }
-        map.remove(player);
-        RegionCommand.editorSet.remove(player);
-    }
-
-    public void delay(Player player) {
-        coolDown.add(player);
-        Bukkit.getScheduler().runTaskLaterAsynchronously(JavaPlugin.getPlugin(Main.class), () -> coolDown.remove(player), 10);
-    }
-
-    private static final HashMap<Player, Region> playerMap = new HashMap<>();
 
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
@@ -160,36 +135,6 @@ public class RegionListener implements Listener {
         }
     }
 
-    public boolean checkRegionPermission(Player player, Region region) {
-        if (!region.getRegionPermission().getAccessPlayers().contains(player.getName())) {
-            if (!region.getOwner().equals(player.getName())) {
-                if (!player.hasPermission("administrators")) {
-                    player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public void teleport(Player player, Region region) {
-        if (region.getX1() >= player.getLocation().getBlockX()) {
-            player.teleport(player.getLocation().add(-2, 0, 0));
-        }
-        if (region.getX2() <= player.getLocation().getBlockX()) {
-            player.teleport(player.getLocation().add(2, 0, 0));
-        }
-        if (region.getZ1() >= player.getLocation().getBlockZ()) {
-            player.teleport(player.getLocation().add(0, 0, -2));
-        }
-        if (region.getZ2() <= player.getLocation().getBlockZ()) {
-            player.teleport(player.getLocation().add(0, 0, 2));
-        }
-        else if (isPlayerIn(player, region)) {
-            player.teleport(player.getLocation().set(0, 60, 0));
-        }
-    }
-
     @EventHandler
     public void onBlockExplode(BlockExplodeEvent e) {
         for (Region region : RegionUtil.regionSet) {
@@ -210,6 +155,17 @@ public class RegionListener implements Listener {
                 }
             }
         }
+        List<Block> canceledBlocks = new ArrayList<>();
+        for (Block block : e.blockList()) {
+            for (Region region : RegionUtil.regionSet) {
+                if (isBlockIn(block, region)) {
+                    if (!region.getRegionPermission().isExplode()) {
+                        canceledBlocks.add(block);
+                    }
+                }
+            }
+        }
+        canceledBlocks.forEach(block -> e.blockList().remove(block));
     }
 
     @EventHandler
@@ -261,6 +217,60 @@ public class RegionListener implements Listener {
     }
 
     public static void initialize() {
+    }
+
+    public void buyArea(Player player) {
+        Area area = map.get(player);
+        player.sendMessage(String.valueOf(RegionUtil.getSize(area)));
+        if (!RegionUtil.checkOverlapping(area)) {
+            if (!RegionUtil.playerCountMap.containsKey(player)) RegionUtil.playerCountMap.put(player, 0);
+            if (RegionUtil.playerCountMap.get(player) >= RegionUtil.getSize(area)) {
+                RegionUtil.playerCountMap.put(player, RegionUtil.playerCountMap.get(player) - RegionUtil.getSize(area));
+                RegionUtil.createRegion(area, player);
+                player.sendMessage(Main.getConfigMessage("messages.edit.set"));
+            } else {
+                player.sendMessage(Main.getConfigMessage("messages.error.no-region"));
+            }
+        } else {
+            player.sendMessage(Main.getConfigMessage("messages.edit.overlap"));
+        }
+        map.remove(player);
+        RegionCommand.editorSet.remove(player);
+    }
+
+    public void delay(Player player) {
+        coolDown.add(player);
+        Bukkit.getScheduler().runTaskLaterAsynchronously(JavaPlugin.getPlugin(Main.class), () -> coolDown.remove(player), 10);
+    }
+
+    public boolean checkRegionPermission(Player player, Region region) {
+        if (!region.getRegionPermission().getAccessPlayers().contains(player.getName())) {
+            if (!region.getOwner().equals(player.getName())) {
+                if (!player.hasPermission("administrators")) {
+                    player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void teleport(Player player, Region region) {
+        if (region.getX1() >= player.getLocation().getBlockX()) {
+            player.teleport(player.getLocation().add(-2, 0, 0));
+        }
+        if (region.getX2() <= player.getLocation().getBlockX()) {
+            player.teleport(player.getLocation().add(2, 0, 0));
+        }
+        if (region.getZ1() >= player.getLocation().getBlockZ()) {
+            player.teleport(player.getLocation().add(0, 0, -2));
+        }
+        if (region.getZ2() <= player.getLocation().getBlockZ()) {
+            player.teleport(player.getLocation().add(0, 0, 2));
+        }
+        else if (isPlayerIn(player, region)) {
+            player.teleport(player.getLocation().set(0, 60, 0));
+        }
     }
 
     public static boolean isEntityIn(Entity entity, Region region) {

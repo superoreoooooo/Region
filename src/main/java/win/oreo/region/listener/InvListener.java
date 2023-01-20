@@ -13,6 +13,7 @@ import win.oreo.region.region.permission.RegionPermission;
 import win.oreo.region.region.permission.RegionPermissionUtil;
 
 public class InvListener implements Listener {
+
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (e.getClickedInventory() == null) {
@@ -32,34 +33,12 @@ public class InvListener implements Listener {
                                 switch (item.getAction()) {
                                     case CLOSE -> e.getWhoClicked().closeInventory();
                                     case VOID -> {
-                                        switch (e.getClickedInventory().getName()) {
+                                        switch (inventory.getInventoryName()){
                                             case "권한설정" -> {
-                                                boolean bool;
-                                                RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
-                                                if (regionPermission == null) return;
-                                                switch (item.getItemStack().getType()) {
-                                                    case DIAMOND_PICKAXE -> {
-                                                        bool = !regionPermission.isAccess();
-                                                        for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                                            region.getRegionPermission().setAccess(bool);
-                                                        }
-                                                        player.sendMessage("region permission:access set to " + bool);
-                                                    }
-                                                    case TNT -> {
-                                                        bool = !regionPermission.isExplode();
-                                                        for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                                            region.getRegionPermission().setExplode(bool);
-                                                        }
-                                                        player.sendMessage("region permission:explode set to " + bool);
-                                                    }
-                                                    case DIAMOND_SWORD -> {
-                                                        bool = !regionPermission.isPvp();
-                                                        for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                                            region.getRegionPermission().setPvp(bool);
-                                                        }
-                                                        player.sendMessage("region permission:access set to " + bool);
-                                                    }
-                                                }
+                                                permission(player, item);
+                                            }
+                                            case "테스트" -> {
+                                                player.sendMessage("test!");
                                             }
                                         }
                                     }
@@ -70,6 +49,35 @@ public class InvListener implements Listener {
                 }
             } else if (inventory.getInventory().equals(e.getInventory())) {
                 e.setCancelled(true);
+            }
+        }
+    }
+
+    public void permission(Player player, oreoItem item) {
+        boolean bool;
+        RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
+        if (regionPermission == null) return;
+        switch (item.getItemStack().getType()) {
+            case DIAMOND_PICKAXE -> {
+                bool = !regionPermission.isAccess();
+                for (Region region : RegionUtil.getPlayerRegions(player)) {
+                    region.getRegionPermission().setAccess(bool);
+                }
+                player.sendMessage("region permission:access set to " + bool);
+            }
+            case TNT -> {
+                bool = !regionPermission.isExplode();
+                for (Region region : RegionUtil.getPlayerRegions(player)) {
+                    region.getRegionPermission().setExplode(bool);
+                }
+                player.sendMessage("region permission:explode set to " + bool);
+            }
+            case DIAMOND_SWORD -> {
+                bool = !regionPermission.isPvp();
+                for (Region region : RegionUtil.getPlayerRegions(player)) {
+                    region.getRegionPermission().setPvp(bool);
+                }
+                player.sendMessage("region permission:access set to " + bool);
             }
         }
     }

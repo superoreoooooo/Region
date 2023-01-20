@@ -118,128 +118,14 @@ public class RegionCommand implements CommandExecutor {
                         }
                     }
                     case "setpermission", "setperm", "권한설정" -> {
-                        oreoInv inv = new oreoInv();
-                        if (inv.get("권한설정").size() != 0) {
-                            inv.get("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
-                        } else {
-                            boolean access = false;
-                            boolean explode = false;
-                            boolean pvp = false;
-
-                            RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
-
-                            if (regionPermission == null) return false;
-                            if (regionPermission.isAccess()) access = true;
-                            if (regionPermission.isExplode()) explode = true;
-                            if (regionPermission.isPvp()) pvp = true;
-
-                            HashMap<Integer, oreoItem> map = new HashMap<>();
-
-                            ItemStack accessStack = new ItemStack(Material.DIAMOND_PICKAXE);
-                            ItemMeta playerPermMeta = accessStack.getItemMeta();
-                            playerPermMeta.setDisplayName(ChatColor.GOLD + "플레이어 출입");
-                            List<String> playerPermLore = new ArrayList<>();
-                            playerPermLore.add("플레이어 출입 : " + access);
-                            playerPermMeta.setLore(playerPermLore);
-                            accessStack.setItemMeta(playerPermMeta);
-
-                            ItemStack explodeStack = new ItemStack(Material.TNT);
-                            ItemMeta explodeMeta = explodeStack.getItemMeta();
-                            explodeMeta.setDisplayName(ChatColor.GOLD + "폭발 방지");
-                            List<String> explodeLore = new ArrayList<>();
-                            explodeLore.add("폭발 상태 : " + explode);
-                            explodeMeta.setLore(explodeLore);
-                            explodeStack.setItemMeta(explodeMeta);
-
-                            ItemStack pvpStack = new ItemStack(Material.DIAMOND_SWORD);
-                            ItemMeta pvpMeta = pvpStack.getItemMeta();
-                            pvpMeta.setDisplayName(ChatColor.GOLD + "PVP");
-                            List<String> pvpLore = new ArrayList<>();
-                            pvpLore.add("플레이어 출입 : " + pvp);
-                            pvpMeta.setLore(pvpLore);
-                            pvpStack.setItemMeta(pvpMeta);
-
-                            map.put(2, new oreoItem(accessStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-                            map.put(4, new oreoItem(explodeStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-                            map.put(6, new oreoItem(pvpStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-
-                            oreoInventory inventory = inv.create("권한설정", 9, map);
-                            player.openInventory(inventory.getInventory());
-                        }
+                        permission(player);
                     }
                     case "show", "확인" -> {
-                        player.sendMessage(Main.getConfigMessage("messages.show.region"));
-
-                        List<Block> blocks = new ArrayList<>();
                         if (RegionUtil.getPlayerRegions(player) == null) return false;
+                        player.sendMessage(Main.getConfigMessage("messages.show.region"));
                         for (Region region : RegionUtil.getPlayerRegions(player)) {
-                            int x1 = region.getX1();
-                            int x2 = region.getX2();
-                            int z1 = region.getZ1();
-                            int z2 = region.getZ2();
-                            String[] strings1 = new String[3];
-                            String[] strings2 = new String[3];
-
-                            strings1[0] = String.valueOf(x1);
-                            strings1[1] = String.valueOf(z1);
-                            strings1[2] = region.getId().toString();
-
-                            strings2[0] = String.valueOf(x2);
-                            strings2[1] = String.valueOf(z2);
-                            strings2[2] = region.getId().toString();
-
-                            player.sendMessage(Main.getConfigMessage("messages.show.pos1", strings1));
-                            player.sendMessage(Main.getConfigMessage("messages.show.pos2", strings2));
-
-                            for (int x = x1 + 1; x < x2; x++) {
-                                int high = 0;
-                                for (int y = 0; y <= 256; y++) {
-                                    Location loc = new Location(player.getWorld(), x, y, z1);
-                                    if (!loc.getBlock().isEmpty()) high = y;
-                                }
-                                high++;
-                                Location location = new Location(player.getWorld(), x, high, z1);
-                                blocks.add(spawnBlock(player.getWorld(), location));
-                            }
-
-                            for (int x = x1; x < x2; x++) {
-                                int high = 0;
-                                for (int y = 0; y <= 256; y++) {
-                                    Location loc = new Location(player.getWorld(), x, y, z2);
-                                    if (!loc.getBlock().isEmpty()) high = y;
-                                }
-                                high++;
-                                Location location = new Location(player.getWorld(), x, high, z2);
-                                blocks.add(spawnBlock(player.getWorld(), location));
-                            }
-
-                            for (int z = z1; z < z2; z++) {
-                                int high = 0;
-                                for (int y = 0; y <= 256; y++) {
-                                    Location loc = new Location(player.getWorld(), x1, y, z);
-                                    if (!loc.getBlock().isEmpty()) high = y;
-                                }
-                                high++;
-                                Location location = new Location(player.getWorld(), x1, high, z);
-                                blocks.add(spawnBlock(player.getWorld(), location));
-                            }
-
-                            for (int z = z1; z <= z2; z++) {
-                                int high = 0;
-                                for (int y = 0; y <= 256; y++) {
-                                    Location loc = new Location(player.getWorld(), x2, y, z);
-                                    if (!loc.getBlock().isEmpty()) high = y;
-                                }
-                                high++;
-                                Location location = new Location(player.getWorld(), x2, high, z);
-                                blocks.add(spawnBlock(player.getWorld(), location));
-                            }
+                            show(player, region);
                         }
-                        Bukkit.getScheduler().runTaskLater(JavaPlugin.getPlugin(Main.class), () -> {
-                            for (Block block : blocks) {
-                                block.setType(Material.AIR);
-                            }
-                        }, 100);
                     }
                     default -> {
                         player.sendMessage(Main.getConfigMessage("messages.error.wrong-command"));
@@ -248,6 +134,57 @@ public class RegionCommand implements CommandExecutor {
             }
         }
         return false;
+    }
+
+    public void permission(Player player) {
+        oreoInv inv = new oreoInv();
+        if (inv.get("권한설정").size() != 0) {
+            inv.get("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
+        } else {
+            boolean access = false;
+            boolean explode = false;
+            boolean pvp = false;
+
+            RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
+
+            if (regionPermission == null) return;
+            if (regionPermission.isAccess()) access = true;
+            if (regionPermission.isExplode()) explode = true;
+            if (regionPermission.isPvp()) pvp = true;
+
+            HashMap<Integer, oreoItem> map = new HashMap<>();
+
+            ItemStack accessStack = new ItemStack(Material.DIAMOND_PICKAXE);
+            ItemMeta playerPermMeta = accessStack.getItemMeta();
+            playerPermMeta.setDisplayName(ChatColor.GOLD + "플레이어 출입");
+            List<String> playerPermLore = new ArrayList<>();
+            playerPermLore.add("플레이어 출입 : " + access);
+            playerPermMeta.setLore(playerPermLore);
+            accessStack.setItemMeta(playerPermMeta);
+
+            ItemStack explodeStack = new ItemStack(Material.TNT);
+            ItemMeta explodeMeta = explodeStack.getItemMeta();
+            explodeMeta.setDisplayName(ChatColor.GOLD + "폭발 방지");
+            List<String> explodeLore = new ArrayList<>();
+            explodeLore.add("폭발 상태 : " + explode);
+            explodeMeta.setLore(explodeLore);
+            explodeStack.setItemMeta(explodeMeta);
+
+            ItemStack pvpStack = new ItemStack(Material.DIAMOND_SWORD);
+            ItemMeta pvpMeta = pvpStack.getItemMeta();
+            pvpMeta.setDisplayName(ChatColor.GOLD + "PVP");
+            List<String> pvpLore = new ArrayList<>();
+            pvpLore.add("플레이어 출입 : " + pvp);
+            pvpMeta.setLore(pvpLore);
+            pvpStack.setItemMeta(pvpMeta);
+
+            map.put(2, new oreoItem(accessStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+            map.put(4, new oreoItem(explodeStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+            map.put(6, new oreoItem(pvpStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+
+            oreoInventory inventory = inv.create("권한설정", 9, map);
+            player.openInventory(inventory.getInventory());
+        }
     }
 
     public Block spawnBlock(World world, Location location) {
@@ -261,7 +198,78 @@ public class RegionCommand implements CommandExecutor {
 
     public static boolean checkInt(String arg) {
         String ck = "^[0-9]*$";
-
         return Pattern.matches(ck, arg);
+    }
+
+    public void show(Player player, Region region) {
+        List<Block> blocks = new ArrayList<>();
+
+        int x1 = region.getX1();
+        int x2 = region.getX2();
+        int z1 = region.getZ1();
+        int z2 = region.getZ2();
+        String[] strings1 = new String[3];
+        String[] strings2 = new String[3];
+
+        strings1[0] = String.valueOf(x1);
+        strings1[1] = String.valueOf(z1);
+        strings1[2] = region.getId().toString();
+
+        strings2[0] = String.valueOf(x2);
+        strings2[1] = String.valueOf(z2);
+        strings2[2] = region.getId().toString();
+
+        player.sendMessage(Main.getConfigMessage("messages.show.pos1", strings1));
+        player.sendMessage(Main.getConfigMessage("messages.show.pos2", strings2));
+
+        for (int x = x1 + 1; x < x2; x++) {
+            int high = 0;
+            for (int y = 0; y <= 256; y++) {
+                Location loc = new Location(player.getWorld(), x, y, z1);
+                if (!loc.getBlock().isEmpty()) high = y;
+            }
+            high++;
+            Location location = new Location(player.getWorld(), x, high, z1);
+            blocks.add(spawnBlock(player.getWorld(), location));
+        }
+
+        for (int x = x1; x < x2; x++) {
+            int high = 0;
+            for (int y = 0; y <= 256; y++) {
+                Location loc = new Location(player.getWorld(), x, y, z2);
+                if (!loc.getBlock().isEmpty()) high = y;
+            }
+            high++;
+            Location location = new Location(player.getWorld(), x, high, z2);
+            blocks.add(spawnBlock(player.getWorld(), location));
+        }
+
+        for (int z = z1; z < z2; z++) {
+            int high = 0;
+            for (int y = 0; y <= 256; y++) {
+                Location loc = new Location(player.getWorld(), x1, y, z);
+                if (!loc.getBlock().isEmpty()) high = y;
+            }
+            high++;
+            Location location = new Location(player.getWorld(), x1, high, z);
+            blocks.add(spawnBlock(player.getWorld(), location));
+        }
+
+        for (int z = z1; z <= z2; z++) {
+            int high = 0;
+            for (int y = 0; y <= 256; y++) {
+                Location loc = new Location(player.getWorld(), x2, y, z);
+                if (!loc.getBlock().isEmpty()) high = y;
+            }
+            high++;
+            Location location = new Location(player.getWorld(), x2, high, z);
+            blocks.add(spawnBlock(player.getWorld(), location));
+        }
+
+        Bukkit.getScheduler().runTaskLater(JavaPlugin.getPlugin(Main.class), () -> {
+            for (Block block : blocks) {
+                block.setType(Material.AIR);
+            }
+        }, 100);
     }
 }
