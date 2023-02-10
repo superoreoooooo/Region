@@ -141,18 +141,15 @@ public class RegionCommand implements CommandExecutor {
         if (inv.get("권한설정").size() != 0) {
             inv.get("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
         } else {
-            boolean access = false;
-            boolean explode = false;
-            boolean pvp = false;
+            if (RegionUtil.getPlayerRegions(player) == null) return;
 
             RegionPermission regionPermission = RegionPermissionUtil.getRegionPermission(player);
 
             if (regionPermission == null) return;
-            if (regionPermission.isAccess()) access = true;
-            if (regionPermission.isExplode()) explode = true;
-            if (regionPermission.isPvp()) pvp = true;
 
-            HashMap<Integer, oreoItem> map = new HashMap<>();
+            boolean access = regionPermission.isAccess();
+            boolean explode = regionPermission.isExplode();
+            boolean pvp = regionPermission.isPvp();
 
             ItemStack accessStack = new ItemStack(Material.DIAMOND_PICKAXE);
             ItemMeta playerPermMeta = accessStack.getItemMeta();
@@ -174,16 +171,17 @@ public class RegionCommand implements CommandExecutor {
             ItemMeta pvpMeta = pvpStack.getItemMeta();
             pvpMeta.setDisplayName(ChatColor.GOLD + "PVP");
             List<String> pvpLore = new ArrayList<>();
-            pvpLore.add("플레이어 출입 : " + pvp);
+            pvpLore.add(pvp ? "PVP : 켜짐" : "PVP : 꺼짐");
             pvpMeta.setLore(pvpLore);
             pvpStack.setItemMeta(pvpMeta);
 
-            map.put(2, new oreoItem(accessStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-            map.put(4, new oreoItem(explodeStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-            map.put(6, new oreoItem(pvpStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+            oreoInventory oreoInventory = inv.create("권한설정", 9);
 
-            oreoInventory inventory = inv.create("권한설정", 9, map);
-            player.openInventory(inventory.getInventory());
+            inv.setItem(oreoInventory, 2, new oreoItem(accessStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+            inv.setItem(oreoInventory, 4, new oreoItem(explodeStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+            inv.setItem(oreoInventory, 6, new oreoItem(pvpStack, ItemType.BUTTON, 0, ButtonAction.VOID));
+
+            player.openInventory(oreoInventory.getInventory());
         }
     }
 
@@ -195,6 +193,8 @@ public class RegionCommand implements CommandExecutor {
         }
         return block;
     }
+
+
 
     public static boolean checkInt(String arg) {
         String ck = "^[0-9]*$";
