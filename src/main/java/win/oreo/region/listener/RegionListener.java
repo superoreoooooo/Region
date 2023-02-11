@@ -91,8 +91,10 @@ public class RegionListener implements Listener {
             if (playerMap.containsKey(player)) {
                 if (isPlayerIn(player, region)) {
                     if (checkRegionPermission(player, region)) {
-                        teleport(player, region);
-                        return;
+                        if (!region.getRegionPermission().isAccess()) {
+                            player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
+                            teleport(player, region);
+                        }
                     }
                     if (!playerMap.get(player).equals(region)) {
                         player.sendTitle(ChatColor.translateAlternateColorCodes('&', "&6&l" + region.getOwner() + "님의 지역"), "", 10, 70, 20);
@@ -102,7 +104,10 @@ public class RegionListener implements Listener {
             } else {
                 if (isPlayerIn(player, region)) {
                     if (checkRegionPermission(player, region)) {
-                        teleport(player, region);
+                        if (!region.getRegionPermission().isAccess()) {
+                            player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
+                            teleport(player, region);
+                        }
                         return;
                     }
                     playerMap.put(player, region);
@@ -150,7 +155,7 @@ public class RegionListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent e) {
         for (Region region : RegionUtil.regionSet) {
             if (isEntityIn(e.getEntity(), region)) {
-                if (!region.getRegionPermission().isExplode()) {
+                if (region.getRegionPermission().isExplode()) {
                     e.setCancelled(true);
                 }
             }
@@ -216,9 +221,6 @@ public class RegionListener implements Listener {
         }
     }
 
-    public static void initialize() {
-    }
-
     public void buyArea(Player player) {
         Area area = map.get(player);
         player.sendMessage(String.valueOf(RegionUtil.getSize(area)));
@@ -247,7 +249,6 @@ public class RegionListener implements Listener {
         if (!region.getRegionPermission().getAccessPlayers().contains(player.getName())) {
             if (!region.getOwner().equals(player.getName())) {
                 if (!player.hasPermission("administrators")) {
-                    player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
                     return true;
                 }
             }

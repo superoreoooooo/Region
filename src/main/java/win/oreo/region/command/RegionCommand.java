@@ -1,6 +1,5 @@
 package win.oreo.region.command;
 
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -10,21 +9,22 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import win.oreo.inventory.Inventory.Enums.ButtonAction;
 import win.oreo.inventory.Inventory.Enums.ItemType;
 import win.oreo.inventory.Inventory.oreoInventory;
-import win.oreo.inventory.Inventory.oreoItem;
-import win.oreo.inventory.util.oreoInv;
+import win.oreo.inventory.util.oreoInventoryUtil;
+import win.oreo.inventory.util.oreoItemUtil;
 import win.oreo.region.Main;
 import win.oreo.region.region.Region;
 import win.oreo.region.region.RegionUtil;
 import win.oreo.region.region.permission.RegionPermission;
 import win.oreo.region.region.permission.RegionPermissionUtil;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class RegionCommand implements CommandExecutor {
@@ -137,9 +137,11 @@ public class RegionCommand implements CommandExecutor {
     }
 
     public void permission(Player player) {
-        oreoInv inv = new oreoInv();
-        if (inv.get("권한설정").size() != 0) {
-            inv.get("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
+
+        oreoInventoryUtil util = new oreoInventoryUtil();
+
+        if (util.get("권한설정").size() != 0) {
+            util.get("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
         } else {
             if (RegionUtil.getPlayerRegions(player) == null) return;
 
@@ -147,41 +149,13 @@ public class RegionCommand implements CommandExecutor {
 
             if (regionPermission == null) return;
 
-            boolean access = regionPermission.isAccess();
-            boolean explode = regionPermission.isExplode();
-            boolean pvp = regionPermission.isPvp();
+            oreoInventory inventory = util.create("권한설정", 9);
 
-            ItemStack accessStack = new ItemStack(Material.DIAMOND_PICKAXE);
-            ItemMeta playerPermMeta = accessStack.getItemMeta();
-            playerPermMeta.setDisplayName(ChatColor.GOLD + "플레이어 출입");
-            List<String> playerPermLore = new ArrayList<>();
-            playerPermLore.add("플레이어 출입 : " + access);
-            playerPermMeta.setLore(playerPermLore);
-            accessStack.setItemMeta(playerPermMeta);
+            util.setItem(inventory, 2, oreoItemUtil.create(Material.DIAMOND_PICKAXE, "플레이어 출입", new ArrayList<>(), ItemType.BUTTON, ButtonAction.VOID));
+            util.setItem(inventory, 4, oreoItemUtil.create(Material.TNT, "폭발 방지", new ArrayList<>(), ItemType.BUTTON, ButtonAction.VOID));
+            util.setItem(inventory, 6, oreoItemUtil.create(Material.DIAMOND_SWORD, "PVP", new ArrayList<>(), ItemType.BUTTON, ButtonAction.VOID));
 
-            ItemStack explodeStack = new ItemStack(Material.TNT);
-            ItemMeta explodeMeta = explodeStack.getItemMeta();
-            explodeMeta.setDisplayName(ChatColor.GOLD + "폭발 방지");
-            List<String> explodeLore = new ArrayList<>();
-            explodeLore.add("폭발 상태 : " + explode);
-            explodeMeta.setLore(explodeLore);
-            explodeStack.setItemMeta(explodeMeta);
-
-            ItemStack pvpStack = new ItemStack(Material.DIAMOND_SWORD);
-            ItemMeta pvpMeta = pvpStack.getItemMeta();
-            pvpMeta.setDisplayName(ChatColor.GOLD + "PVP");
-            List<String> pvpLore = new ArrayList<>();
-            pvpLore.add(pvp ? "PVP : 켜짐" : "PVP : 꺼짐");
-            pvpMeta.setLore(pvpLore);
-            pvpStack.setItemMeta(pvpMeta);
-
-            oreoInventory oreoInventory = inv.create("권한설정", 9);
-
-            inv.setItem(oreoInventory, 2, new oreoItem(accessStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-            inv.setItem(oreoInventory, 4, new oreoItem(explodeStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-            inv.setItem(oreoInventory, 6, new oreoItem(pvpStack, ItemType.BUTTON, 0, ButtonAction.VOID));
-
-            player.openInventory(oreoInventory.getInventory());
+            player.openInventory(inventory.getInventory());
         }
     }
 
