@@ -144,7 +144,7 @@ public class RegionListener implements Listener {
     public void onBlockExplode(BlockExplodeEvent e) {
         for (Region region : RegionUtil.regionSet) {
             if (isBlockIn(e.getBlock(), region)) {
-                if (!region.getRegionPermission().isExplode()) {
+                if (region.getRegionPermission().isExplode()) {
                     e.setCancelled(true);
                 }
             }
@@ -164,7 +164,7 @@ public class RegionListener implements Listener {
         for (Block block : e.blockList()) {
             for (Region region : RegionUtil.regionSet) {
                 if (isBlockIn(block, region)) {
-                    if (!region.getRegionPermission().isExplode()) {
+                    if (region.getRegionPermission().isExplode()) {
                         canceledBlocks.add(block);
                     }
                 }

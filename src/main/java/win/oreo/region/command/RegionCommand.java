@@ -21,10 +21,7 @@ import win.oreo.region.region.RegionUtil;
 import win.oreo.region.region.permission.RegionPermission;
 import win.oreo.region.region.permission.RegionPermissionUtil;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class RegionCommand implements CommandExecutor {
@@ -100,12 +97,13 @@ public class RegionCommand implements CommandExecutor {
                                 list.remove(args[1]);
                                 region.getRegionPermission().setAccessPlayers(list);
                                 tf = true;
+                                break;
                             }
                         }
                         if (tf) {
                             player.sendMessage(Main.getConfigMessage("messages.permission.remove.success", strings));
                         } else {
-                            player.sendMessage(Main.getConfigMessage("messages.permission.remove.success", strings));
+                            player.sendMessage(Main.getConfigMessage("messages.permission.remove.fail", strings));
                         }
                     }
                     case "permission", "perm", "권한확인" -> {
@@ -127,6 +125,13 @@ public class RegionCommand implements CommandExecutor {
                             show(player, region);
                         }
                     }
+                    case "clearInv" -> {
+                        oreoInventoryUtil util = new oreoInventoryUtil();
+                        util.clear();
+                    }
+                    case "test" -> {
+                        oreoInventoryUtil.oreoInventories.forEach(oreoInventory -> player.sendMessage(oreoInventory.getInventoryName()));
+                    }
                     default -> {
                         player.sendMessage(Main.getConfigMessage("messages.error.wrong-command"));
                     }
@@ -140,8 +145,8 @@ public class RegionCommand implements CommandExecutor {
 
         oreoInventoryUtil util = new oreoInventoryUtil();
 
-        if (util.get("권한설정").size() != 0) {
-            util.get("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
+        if (util.getByName("권한설정").size() != 0) {
+            util.getByName("권한설정").forEach(oreoInventory -> player.openInventory(oreoInventory.getInventory()));
         } else {
             if (RegionUtil.getPlayerRegions(player) == null) return;
 
@@ -167,8 +172,6 @@ public class RegionCommand implements CommandExecutor {
         }
         return block;
     }
-
-
 
     public static boolean checkInt(String arg) {
         String ck = "^[0-9]*$";
@@ -197,46 +200,22 @@ public class RegionCommand implements CommandExecutor {
         player.sendMessage(Main.getConfigMessage("messages.show.pos2", strings2));
 
         for (int x = x1 + 1; x < x2; x++) {
-            int high = 0;
-            for (int y = 0; y <= 256; y++) {
-                Location loc = new Location(player.getWorld(), x, y, z1);
-                if (!loc.getBlock().isEmpty()) high = y;
-            }
-            high++;
-            Location location = new Location(player.getWorld(), x, high, z1);
+            Location location = new Location(player.getWorld(), x, getMaxHeight(player.getWorld(), x, z1), z1);
             blocks.add(spawnBlock(player.getWorld(), location));
         }
 
         for (int x = x1; x < x2; x++) {
-            int high = 0;
-            for (int y = 0; y <= 256; y++) {
-                Location loc = new Location(player.getWorld(), x, y, z2);
-                if (!loc.getBlock().isEmpty()) high = y;
-            }
-            high++;
-            Location location = new Location(player.getWorld(), x, high, z2);
+            Location location = new Location(player.getWorld(), x, getMaxHeight(player.getWorld(), x, z2), z2);
             blocks.add(spawnBlock(player.getWorld(), location));
         }
 
         for (int z = z1; z < z2; z++) {
-            int high = 0;
-            for (int y = 0; y <= 256; y++) {
-                Location loc = new Location(player.getWorld(), x1, y, z);
-                if (!loc.getBlock().isEmpty()) high = y;
-            }
-            high++;
-            Location location = new Location(player.getWorld(), x1, high, z);
+            Location location = new Location(player.getWorld(), x1, getMaxHeight(player.getWorld(), x1, z), z);
             blocks.add(spawnBlock(player.getWorld(), location));
         }
 
         for (int z = z1; z <= z2; z++) {
-            int high = 0;
-            for (int y = 0; y <= 256; y++) {
-                Location loc = new Location(player.getWorld(), x2, y, z);
-                if (!loc.getBlock().isEmpty()) high = y;
-            }
-            high++;
-            Location location = new Location(player.getWorld(), x2, high, z);
+            Location location = new Location(player.getWorld(), x2, getMaxHeight(player.getWorld(), x2, z), z);
             blocks.add(spawnBlock(player.getWorld(), location));
         }
 
@@ -245,5 +224,14 @@ public class RegionCommand implements CommandExecutor {
                 block.setType(Material.AIR);
             }
         }, 100);
+    }
+
+    public int getMaxHeight(World world, int v1, int v2) {
+        int max = 0;
+        for (int y = 0; y <= 256; y++) {
+            Location loc = new Location(world, v1, y, v2);
+            if (!loc.getBlock().isEmpty()) max = y;
+        }
+        return ++max;
     }
 }

@@ -23,7 +23,6 @@ public class RegionCompleter implements TabCompleter {
             completions.add("권한해제");
             completions.add("권한확인");
             completions.add("권한설정");
-
             return completions;
         }
         return null;

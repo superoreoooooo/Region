@@ -106,7 +106,7 @@ public class InventoryListener implements Listener {
                 for (Region region : RegionUtil.getPlayerRegions(player)) {
                     region.getRegionPermission().setAccess(bool);
                 }
-                player.sendMessage("모든 플레이어의 플레이어 출입을 " + bool + "로 변경되었습니다.");
+                player.sendMessage("모든 플레이어의 지역 출입을 " + bool + "로 변경되었습니다.");
             }
             case TNT -> {
                 bool = !regionPermission.isExplode();
