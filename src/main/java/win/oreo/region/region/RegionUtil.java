@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import win.oreo.region.Main;
 import win.oreo.region.region.permission.RegionPermission;
+import win.oreo.region.region.permission.RegionPermissionUtil;
 import win.oreo.region.util.Area;
 
 import java.util.*;
@@ -14,6 +15,8 @@ public class RegionUtil {
     public static HashMap<OfflinePlayer, Set<Region>> playerRegionMap = new HashMap<>();
     public static Set<Region> regionSet = new HashSet<>();
     public static HashMap<OfflinePlayer, Integer> playerCountMap = new HashMap<>();
+
+    public static HashMap<OfflinePlayer, RegionPermission> playerRegionPermissionHashMap = new HashMap<>();
 
     /**
      * initializes region system.
@@ -27,14 +30,8 @@ public class RegionUtil {
             int z1 = plugin.ymlManager.getConfig().getInt("region." + regionID + ".z1");
             int z2 = plugin.ymlManager.getConfig().getInt("region." + regionID + ".z2");
             String owner = plugin.ymlManager.getConfig().getString("region." + regionID + ".owner");
-            boolean access = plugin.ymlManager.getConfig().getBoolean("region." + regionID + ".permission.access");
-            boolean explode = plugin.ymlManager.getConfig().getBoolean("region." + regionID + ".permission.explode");
-            boolean pvp = plugin.ymlManager.getConfig().getBoolean("region." + regionID + ".permission.pvp");
-            List<String> authPlayer = plugin.ymlManager.getConfig().getStringList("region." + regionID + ".permission.accessPlayers");
 
-            RegionPermission regionPermission = new RegionPermission(access, explode, pvp, authPlayer);
-
-            Region region = new Region(id, x1, x2, z1, z2, owner, regionPermission);
+            Region region = new Region(id, x1, x2, z1, z2, owner);
 
             OfflinePlayer player = Bukkit.getOfflinePlayer(owner);
 
@@ -44,7 +41,14 @@ public class RegionUtil {
         for (String name : plugin.ymlManager.getConfig().getConfigurationSection("player.").getKeys(false)) {
             OfflinePlayer player = Bukkit.getOfflinePlayer(name);
             int count = plugin.ymlManager.getConfig().getInt("player." + name + ".count");
+            boolean access = plugin.ymlManager.getConfig().getBoolean("player." + name + ".permission.access");
+            boolean explode = plugin.ymlManager.getConfig().getBoolean("player." + name + ".permission.explode");
+            boolean pvp = plugin.ymlManager.getConfig().getBoolean("player." + name + ".permission.pvp");
+            List<String> authPlayer = plugin.ymlManager.getConfig().getStringList("region." + name + ".permission.accessPlayers");
 
+            RegionPermission regionPermission = new RegionPermission(access, explode, pvp, authPlayer);
+
+            playerRegionPermissionHashMap.put(player, regionPermission);
             playerCountMap.put(player, count);
         }
     }
@@ -57,14 +61,14 @@ public class RegionUtil {
             plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".z1", region.getZ1());
             plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".z2", region.getZ2());
             plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".owner", region.getOwner());
-            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.access", region.getRegionPermission().isAccess());
-            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.explode", region.getRegionPermission().isExplode());
-            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.pvp", region.getRegionPermission().isPvp());
-            plugin.ymlManager.getConfig().set("region." + region.getId().toString() + ".permission.accessPlayers", region.getRegionPermission().getAccessPlayers());
         }
         for (OfflinePlayer offlinePlayer : playerCountMap.keySet()) {
+            RegionPermission perm = playerRegionPermissionHashMap.get(offlinePlayer);
             plugin.ymlManager.getConfig().set("player." + offlinePlayer.getName() + ".count", playerCountMap.get(offlinePlayer));
-            Bukkit.getConsoleSender().sendMessage("player : " + offlinePlayer.getName() + " count : " + playerCountMap.get(offlinePlayer));
+            plugin.ymlManager.getConfig().set("player." + offlinePlayer.getName() + ".permission.access", perm.isAccess());
+            plugin.ymlManager.getConfig().set("player." + offlinePlayer.getName() + ".permission.explode", perm.isExplode());
+            plugin.ymlManager.getConfig().set("player." + offlinePlayer.getName() + ".permission.pvp", perm.isPvp());
+            plugin.ymlManager.getConfig().set("player." + offlinePlayer.getName() + ".permission.accessPlayers", perm.getAccessPlayers());
         }
         plugin.ymlManager.saveConfig();
         Bukkit.getConsoleSender().sendMessage("save complete!");
@@ -108,9 +112,12 @@ public class RegionUtil {
     public static void createRegion(int x1, int x2, int z1, int z2, String owner) {
         UUID newID = UUID.randomUUID();
         int[] ints = setNormal(x1, x2, z1, z2);
-        List<String> list = new ArrayList<>();
-        RegionPermission permission = new RegionPermission(false, false, false, list);
-        Region region = new Region(newID, ints[0], ints[1], ints[2], ints[3], owner, permission);
+        if (RegionPermissionUtil.getRegionPermission(Bukkit.getOfflinePlayer(owner)) == null) {
+            List<String> list = new ArrayList<>();
+            RegionPermission permission = new RegionPermission(false, false, false, list);
+            playerRegionPermissionHashMap.put(Bukkit.getOfflinePlayer(owner), permission);
+        }
+        Region region = new Region(newID, ints[0], ints[1], ints[2], ints[3], owner);
         regionSet.add(region);
         addRegionToPlayer(Bukkit.getOfflinePlayer(owner), region);
     }

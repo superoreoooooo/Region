@@ -9,8 +9,6 @@ import win.oreo.inventory.Inventory.oreoInventory;
 import win.oreo.inventory.Inventory.oreoItem;
 import win.oreo.inventory.listener.oreoInventoryClickEvent;
 import win.oreo.region.Main;
-import win.oreo.region.region.Region;
-import win.oreo.region.region.RegionUtil;
 import win.oreo.region.region.permission.RegionPermission;
 import win.oreo.region.region.permission.RegionPermissionUtil;
 
@@ -103,23 +101,17 @@ public class InventoryListener implements Listener {
         switch (item.getItemStack().getType()) {
             case DIAMOND_PICKAXE -> {
                 bool = !regionPermission.isAccess();
-                for (Region region : RegionUtil.getPlayerRegions(player)) {
-                    region.getRegionPermission().setAccess(bool);
-                }
+                RegionPermissionUtil.getRegionPermission(player).setAccess(bool);
                 player.sendMessage("모든 플레이어의 지역 출입을 " + bool + "로 변경되었습니다.");
             }
             case TNT -> {
                 bool = !regionPermission.isExplode();
-                for (Region region : RegionUtil.getPlayerRegions(player)) {
-                    region.getRegionPermission().setExplode(bool);
-                }
+                RegionPermissionUtil.getRegionPermission(player).setExplode(bool);
                 player.sendMessage("폭발 방지가 " + bool + "로 변경되었습니다.");
             }
             case DIAMOND_SWORD -> {
                 bool = !regionPermission.isPvp();
-                for (Region region : RegionUtil.getPlayerRegions(player)) {
-                    region.getRegionPermission().setPvp(bool);
-                }
+                RegionPermissionUtil.getRegionPermission(player).setPvp(bool);
                 player.sendMessage("PVP가 " + bool + "로 변경되었습니다");
             }
         }

@@ -21,7 +21,10 @@ import win.oreo.region.region.RegionUtil;
 import win.oreo.region.region.permission.RegionPermission;
 import win.oreo.region.region.permission.RegionPermissionUtil;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class RegionCommand implements CommandExecutor {
@@ -77,11 +80,13 @@ public class RegionCommand implements CommandExecutor {
                     case "addpermission", "addperm", "권한추가" -> {
                         String[] strings = new String[1];
                         strings[0] = args[1];
+
                         if (Bukkit.getOfflinePlayer(args[1]).hasPlayedBefore()) {
-                            for (Region region : RegionUtil.getPlayerRegions(player)) {
-                                List<String> list = region.getRegionPermission().getAccessPlayers();
+                            RegionPermission perm = RegionPermissionUtil.getRegionPermission(player);
+                            if (perm != null) {
+                                List<String> list = perm.getAccessPlayers();
                                 list.add(args[1]);
-                                region.getRegionPermission().setAccessPlayers(list);
+                                perm.setAccessPlayers(list);
                             }
                             player.sendMessage(Main.getConfigMessage("messages.permission.add", strings));
                         }
@@ -90,12 +95,15 @@ public class RegionCommand implements CommandExecutor {
                     case "removepermission", "removeperm", "권한해제" -> {
                         String[] strings = new String[1];
                         strings[0] = args[1];
+
                         boolean tf = false;
-                        for (Region region : RegionUtil.getPlayerRegions(player)) {
-                            List<String> list = region.getRegionPermission().getAccessPlayers();
+
+                        RegionPermission perm = RegionPermissionUtil.getRegionPermission(player);
+                        if (perm != null) {
+                            List<String> list = perm.getAccessPlayers();
                             if (list.contains(args[1])) {
                                 list.remove(args[1]);
-                                region.getRegionPermission().setAccessPlayers(list);
+                                perm.setAccessPlayers(list);
                                 tf = true;
                                 break;
                             }
@@ -140,6 +148,8 @@ public class RegionCommand implements CommandExecutor {
         }
         return false;
     }
+
+
 
     public void permission(Player player) {
 

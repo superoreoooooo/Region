@@ -3,6 +3,7 @@ package win.oreo.region.listener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -24,6 +25,7 @@ import win.oreo.region.Main;
 import win.oreo.region.command.RegionCommand;
 import win.oreo.region.region.Region;
 import win.oreo.region.region.RegionUtil;
+import win.oreo.region.region.permission.RegionPermissionUtil;
 import win.oreo.region.util.Area;
 import win.oreo.region.util.pos;
 
@@ -91,7 +93,8 @@ public class RegionListener implements Listener {
             if (playerMap.containsKey(player)) {
                 if (isPlayerIn(player, region)) {
                     if (checkRegionPermission(player, region)) {
-                        if (!region.getRegionPermission().isAccess()) {
+                        OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+                        if (!RegionPermissionUtil.getRegionPermission(p).isAccess()) {
                             player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
                             teleport(player, region);
                         }
@@ -104,7 +107,8 @@ public class RegionListener implements Listener {
             } else {
                 if (isPlayerIn(player, region)) {
                     if (checkRegionPermission(player, region)) {
-                        if (!region.getRegionPermission().isAccess()) {
+                        OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+                        if (!RegionPermissionUtil.getRegionPermission(p).isAccess()) {
                             player.sendMessage(ChatColor.RED + "권한이 부족합니다.");
                             teleport(player, region);
                         }
@@ -144,18 +148,21 @@ public class RegionListener implements Listener {
     public void onBlockExplode(BlockExplodeEvent e) {
         for (Region region : RegionUtil.regionSet) {
             if (isBlockIn(e.getBlock(), region)) {
-                if (region.getRegionPermission().isExplode()) {
+                OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+                if (RegionPermissionUtil.getRegionPermission(p).isExplode()) {
                     e.setCancelled(true);
                 }
             }
         }
     }
 
+
     @EventHandler
     public void onEntityExplode(EntityExplodeEvent e) {
         for (Region region : RegionUtil.regionSet) {
             if (isEntityIn(e.getEntity(), region)) {
-                if (region.getRegionPermission().isExplode()) {
+                OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+                if (RegionPermissionUtil.getRegionPermission(p).isExplode()) {
                     e.setCancelled(true);
                 }
             }
@@ -164,7 +171,8 @@ public class RegionListener implements Listener {
         for (Block block : e.blockList()) {
             for (Region region : RegionUtil.regionSet) {
                 if (isBlockIn(block, region)) {
-                    if (region.getRegionPermission().isExplode()) {
+                    OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+                    if (RegionPermissionUtil.getRegionPermission(p).isExplode()) {
                         canceledBlocks.add(block);
                     }
                 }
@@ -179,7 +187,8 @@ public class RegionListener implements Listener {
             if (e.getEntity() instanceof Player victim) {
                 for (Region region : RegionUtil.regionSet) {
                     if (isPlayerIn(attacker, region) || isPlayerIn(victim, region)) {
-                        if (!region.getRegionPermission().isPvp()) {
+                        OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+                        if (!RegionPermissionUtil.getRegionPermission(p).isPvp()) {
                             e.setCancelled(true);
                         }
                     }
@@ -246,7 +255,8 @@ public class RegionListener implements Listener {
     }
 
     public boolean checkRegionPermission(Player player, Region region) {
-        if (!region.getRegionPermission().getAccessPlayers().contains(player.getName())) {
+        OfflinePlayer p = Bukkit.getOfflinePlayer(region.getOwner());
+        if (!RegionPermissionUtil.getRegionPermission(p).getAccessPlayers().contains(player.getName())) {
             if (!region.getOwner().equals(player.getName())) {
                 if (!player.hasPermission("administrators")) {
                     return true;
